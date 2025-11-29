@@ -2,6 +2,7 @@
   "name": "p2p-send",
   "version": "1.0.0",
   "description": "libp2p file sharing application",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
