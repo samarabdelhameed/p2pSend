@@ -1,0 +1,23 @@
+{
+  "name": "p2p-send",
+  "version": "1.0.0",
+  "description": "libp2p file sharing application",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "libp2p",
+    "file-sharing",
+    "p2p"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@libp2p/kad-dht": "^16.1.2",
+    "@libp2p/mplex": "^12.0.10",
+    "@libp2p/noise": "^1.0.1",
+    "@libp2p/tcp": "^11.0.9",
+    "libp2p": "^3.1.2"
+  }
+}
