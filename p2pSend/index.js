@@ -1,10 +1,7 @@
 import { createLibp2p } from 'libp2p';
 import { tcp } from '@libp2p/tcp';
 import { mplex } from '@libp2p/mplex';
-import { noise } from '@libp2p/noise';
-import { kadDHT } from '@libp2p/kad-dht';
-import { pipe } from 'it-pipe';
-import { toBuffer } from 'it-buffer';
+import { noise } from '@chainsafe/libp2p-noise';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -15,25 +12,19 @@ const PROTOCOL = '/p2p-send/1.0.0';
     addresses: { listen: ['/ip4/0.0.0.0/tcp/0'] },
     transports: [tcp()],
     streamMuxers: [mplex()],
-    connectionEncryption: [noise()],
-    dht: kadDHT({ clientMode: true })
+    connectionEncryption: [noise()]
   });
 
   // handler لاستقبال الملفات
   node.handle(PROTOCOL, async ({ stream }) => {
+    console.log('📥 Receiving file...');
     const now = Date.now();
     const filePath = path.join('received', `${now}.bin`);
     const write = fs.createWriteStream(filePath);
 
-    await pipe(
-      stream.source,
-      toBuffer,
-      async source => {
-        for await (const chunk of source) {
-          write.write(chunk);
-        }
-      }
-    );
+    for await (const chunk of stream.source) {
+      write.write(chunk.subarray());
+    }
 
     write.end();
     console.log(`✅ File saved to ${filePath}`);

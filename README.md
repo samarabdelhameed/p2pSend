@@ -41,13 +41,13 @@ libp2p-file-share/
 ### Dependencies
 ```json
 {
-  "libp2p": "^1.9.4",
+  "libp2p": "^1.8.1",
   "@libp2p/tcp": "^9.1.4",
   "@libp2p/mplex": "^10.1.4",
-  "@libp2p/noise": "^15.1.1",
-  "@libp2p/kad-dht": "^12.1.4",
+  "@chainsafe/libp2p-noise": "^15.1.0",
+  "@multiformats/multiaddr": "^12.3.1",
   "it-pipe": "^3.0.1",
-  "it-buffer": "^0.1.4"
+  "it-buffer": "^0.1.3"
 }
 ```
 
@@ -70,7 +70,7 @@ cd p2pSend
 npm install
 ```
 
-### Run Node
+### Run Receiver Node
 ```bash
 node index.js
 ```
@@ -84,6 +84,39 @@ Listen addresses: [
   '/ip4/192.168.x.x/tcp/xxxxx/p2p/12D3KooW...'
 ]
 ```
+
+### Send a File
+
+1. Copy the receiver's multiaddr from the output above
+2. Edit `sender.js` and update `RECEIVER_ADDR` with the copied address
+3. Run the sender:
+
+```bash
+node sender.js
+```
+
+**Expected Output:**
+```
+Sender node started
+Sender Peer ID: 12D3KooW...
+Connecting to receiver...
+Connected to receiver
+Opening stream...
+✅ Sent test.txt
+```
+
+The receiver will show:
+```
+📥 Receiving file...
+✅ File saved to received/1234567890.bin
+```
+
+### Quick Test (Both Nodes)
+```bash
+node simple-test.js
+```
+
+This runs both sender and receiver in a single process for quick testing.
 
 ## 📡 Network Protocol
 
@@ -130,39 +163,62 @@ Listen addresses: [
 ### ✅ Implemented
 - [x] Basic libp2p node initialization
 - [x] TCP transport layer
-- [x] Noise encryption
+- [x] Noise encryption (@chainsafe/libp2p-noise)
 - [x] mplex stream multiplexing
-- [x] DHT client mode
 - [x] Peer ID generation
 - [x] Multi-interface listening
-- [x] Custom protocol handler for file transfer
+- [x] Custom protocol handler for file transfer (`/p2p-send/1.0.0`)
 - [x] Stream-based file reception
-- [x] Auto-save received files
+- [x] Auto-save received files with timestamp naming
+- [x] Sender node implementation
+- [x] **Working P2P file transfer** ✨
 
 ### 📊 Test Results
 
-**Latest Node Execution:**
+**Successful File Transfer Test (December 1, 2024):**
+
+**Receiver Output:**
 ```
 libp2p node started
-Peer ID: 12D3KooWHQcpUvCHXWm6xKpcNzUeLVdAixECLt9bDmhbZRZSnkAH
+Peer ID: 12D3KooWQQ3XNY1piGUv8x6m3gaV9Tn8Yd2ZcJKdCMCasZ5woqS6
 Listen addresses: [
-  '/ip4/127.0.0.1/tcp/51435/p2p/12D3KooWHQcpUvCHXWm6xKpcNzUeLVdAixECLt9bDmhbZRZSnkAH',
-  '/ip4/192.168.1.2/tcp/51435/p2p/12D3KooWHQcpUvCHXWm6xKpcNzUeLVdAixECLt9bDmhbZRZSnkAH'
+  '/ip4/127.0.0.1/tcp/51694/p2p/12D3KooWQQ3XNY1piGUv8x6m3gaV9Tn8Yd2ZcJKdCMCasZ5woqS6',
+  '/ip4/172.20.10.3/tcp/51694/p2p/12D3KooWQQ3XNY1piGUv8x6m3gaV9Tn8Yd2ZcJKdCMCasZ5woqS6'
 ]
+📥 Receiving file...
+✅ File saved to received/1764587055311.bin
 ```
 
-**Status:** ✅ Node running, protocol handler registered, ready to receive files
+**Sender Output:**
+```
+Sender node started
+Sender Peer ID: 12D3KooWBzTiGcfh541J1wJ8GDrv38hd8TThFj32dh6wxoTLdeLC
+Connecting to receiver...
+Connected to receiver
+Opening stream...
+✅ Sent test.txt
+```
+
+**File Verification:**
+```bash
+$ cat received/1764587055311.bin
+Hello from libp2p!
+```
+
+**Status:** ✅ **P2P file transfer working successfully!** Files are being sent and received over encrypted libp2p connections.
 
 ### 🚧 Roadmap
-- [ ] Create sender script to test file transfer
+- [x] Create sender script to test file transfer ✅
+- [x] Basic P2P file transfer working ✅
 - [ ] Add file metadata (name, size) transmission
-- [ ] File chunking and streaming optimization
+- [ ] File chunking for large files
 - [ ] Progress tracking
 - [ ] Peer discovery mechanisms
 - [ ] Bootstrap nodes configuration
 - [ ] Resume interrupted transfers
 - [ ] Multi-file support
 - [ ] CLI interface
+- [ ] NAT traversal support
 
 ## 🧪 Development
 
