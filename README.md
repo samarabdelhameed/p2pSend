@@ -66,50 +66,52 @@ libp2p-file-share/
 
 ### Installation
 ```bash
-cd p2pSend
+git clone https://github.com/samarabdelhameed/p2pSend.git
+cd p2pSend/p2pSend
 npm install
 ```
 
-### Run Receiver Node
+### Easy Way: Interactive CLI (Recommended for Users)
+
+```bash
+npm run cli
+```
+
+The CLI will ask you:
+1. **Receive a file** or **Send a file**?
+2. If receiving: Shows your address (share it with sender)
+3. If sending: Enter file path and receiver address
+
+**Example Flow:**
+
+**Terminal 1 (Receiver):**
+```
+🚀 p2pSend CLI – Easy P2P File Transfer
+? What do you want to do? Receive a file
+📋 Your receiver address:
+   /ip4/127.0.0.1/tcp/xxxxx/p2p/12D3KooW...
+⏳ Waiting for files...
+```
+
+**Terminal 2 (Sender):**
+```
+🚀 p2pSend CLI – Easy P2P File Transfer
+? What do you want to do? Send a file
+? Enter file path: /path/to/myfile.pdf
+? Paste receiver address: /ip4/127.0.0.1/tcp/xxxxx/p2p/12D3KooW...
+✅ Sent myfile.pdf (1024 bytes) | hash: abc123...
+```
+
+### Advanced: Direct Node Usage
+
+**Run Receiver:**
 ```bash
 node index.js
 ```
 
-**Expected Output:**
-```
-libp2p node started
-Peer ID: 12D3KooW...
-Listen addresses: [
-  '/ip4/127.0.0.1/tcp/xxxxx/p2p/12D3KooW...',
-  '/ip4/192.168.x.x/tcp/xxxxx/p2p/12D3KooW...'
-]
-```
-
-### Send a File
-
-1. Copy the receiver's multiaddr from the output above
-2. Edit `sender.js` and update `RECEIVER_ADDR` with the copied address
-3. Run the sender:
-
-```bash
-node sender.js
-```
-
-**Expected Output:**
-```
-Sender node started
-Sender Peer ID: 12D3KooW...
-Connecting to receiver...
-Connected to receiver
-Opening stream...
-✅ Sent test.txt
-```
-
-The receiver will show:
-```
-📥 Receiving file...
-✅ File saved to received/1234567890.bin
-```
+**Run Sender:**
+1. Edit `sender.js` and update `RECEIVER_ADDR`
+2. Run: `node sender.js`
 
 ### Quick Test (Both Nodes)
 ```bash

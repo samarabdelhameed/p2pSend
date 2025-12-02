@@ -5,11 +5,12 @@ import { noise } from '@chainsafe/libp2p-noise';
 import { multiaddr } from '@multiformats/multiaddr';
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 
 const PROTOCOL = '/p2p-send/1.0.0';
 
 // العنوان الحالي للـ receiver
-const RECEIVER_ADDR = '/ip4/127.0.0.1/tcp/57482/p2p/12D3KooWLwDcwDSpyEpgCBZbF85Q3BuLUoTUw6TcvK4GPukGJoPW';
+const RECEIVER_ADDR = '/ip4/127.0.0.1/tcp/58319/p2p/12D3KooWQMqT9meyPUnHvtLrUJsVFLPSU9PuJiuTYEBYssRa7mK4';
 
 (async () => {
   const node = await createLibp2p({
@@ -32,13 +33,18 @@ const RECEIVER_ADDR = '/ip4/127.0.0.1/tcp/57482/p2p/12D3KooWLwDcwDSpyEpgCBZbF85Q
   const fileName = path.basename(filePath);
   const fileSize = stat.size;
 
-  // header: name|size
-  const header = Buffer.from(`${fileName}|${fileSize}`);
+  // حساب الـ hash
+  const hash = crypto.createHash('sha256');
   const fileContent = fs.readFileSync(filePath);
+  hash.update(fileContent);
+  const fileHash = hash.digest('hex');
+
+  // header: name|size|hash
+  const header = Buffer.from(`${fileName}|${fileSize}|${fileHash}`);
 
   await stream.sink([header, fileContent]);
 
-  console.log(`✅ Sent ${fileName} (${fileSize} bytes)`);
+  console.log(`✅ Sent ${fileName} (${fileSize} bytes) | hash: ${fileHash}`);
 
   await node.stop();
 })();
