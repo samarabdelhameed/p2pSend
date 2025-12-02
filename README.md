@@ -135,8 +135,11 @@ This runs both sender and receiver in a single process for quick testing.
 
 ### File Transfer Protocol
 - **Protocol ID**: `/p2p-send/1.0.0`
-- **Method**: Stream-based transfer using it-pipe
-- **Storage**: Files saved to `received/` with timestamp naming (`{timestamp}.bin`)
+- **Method**: Stream-based transfer
+- **Metadata Format**: `{filename}|{filesize}` (sent as first chunk)
+- **Storage**: Files saved to `received/` with original filename
+- **Security**: Path traversal protection using `path.basename()`
+- **Verification**: File size validation after transfer
 
 ## 🔐 Security Features
 
@@ -169,13 +172,15 @@ This runs both sender and receiver in a single process for quick testing.
 - [x] Multi-interface listening
 - [x] Custom protocol handler for file transfer (`/p2p-send/1.0.0`)
 - [x] Stream-based file reception
-- [x] Auto-save received files with timestamp naming
 - [x] Sender node implementation
-- [x] **Working P2P file transfer** ✨
+- [x] **File metadata transmission** (filename + size) ✨
+- [x] **Original filename preservation** ✨
+- [x] **File size verification** ✨
+- [x] **Path traversal protection** ✨
 
 ### 📊 Test Results
 
-**Successful File Transfer Test (December 1, 2024):**
+**Step 5: Basic File Transfer (December 1, 2024)**
 
 **Receiver Output:**
 ```
@@ -192,26 +197,51 @@ Listen addresses: [
 **Sender Output:**
 ```
 Sender node started
-Sender Peer ID: 12D3KooWBzTiGcfh541J1wJ8GDrv38hd8TThFj32dh6wxoTLdeLC
-Connecting to receiver...
-Connected to receiver
-Opening stream...
 ✅ Sent test.txt
+```
+
+---
+
+**Step 6: Metadata & Filename Preservation (December 2, 2024)**
+
+**Receiver Output:**
+```
+libp2p node started
+Peer ID: 12D3KooWLwDcwDSpyEpgCBZbF85Q3BuLUoTUw6TcvK4GPukGJoPW
+Listen addresses: [
+  '/ip4/127.0.0.1/tcp/57482/p2p/12D3KooWLwDcwDSpyEpgCBZbF85Q3BuLUoTUw6TcvK4GPukGJoPW',
+  '/ip4/192.168.1.2/tcp/57482/p2p/12D3KooWLwDcwDSpyEpgCBZbF85Q3BuLUoTUw6TcvK4GPukGJoPW'
+]
+📥 Incoming: test.txt (18 bytes)
+✅ Saved: received/test.txt
+```
+
+**Sender Output:**
+```
+Sender node started
+✅ Sent test.txt (18 bytes)
 ```
 
 **File Verification:**
 ```bash
-$ cat received/1764587055311.bin
+$ ls -la received/
+-rw-r--r--  1 s  staff  18 Dec  2 06:08 test.txt
+
+$ cat received/test.txt
 Hello from libp2p!
 ```
 
-**Status:** ✅ **P2P file transfer working successfully!** Files are being sent and received over encrypted libp2p connections.
+**Status:** ✅ **Enhanced P2P file transfer working!** Files now include metadata (name + size) and are saved with original filenames.
 
 ### 🚧 Roadmap
 - [x] Create sender script to test file transfer ✅
 - [x] Basic P2P file transfer working ✅
-- [ ] Add file metadata (name, size) transmission
+- [x] Add file metadata (name, size) transmission ✅
+- [x] Original filename preservation ✅
+- [x] File size verification ✅
+- [x] Path traversal protection ✅
 - [ ] File chunking for large files
+- [ ] Hash verification (integrity check)
 - [ ] Progress tracking
 - [ ] Peer discovery mechanisms
 - [ ] Bootstrap nodes configuration
@@ -237,10 +267,23 @@ DEBUG=libp2p:* node index.js
 ### File Reception Flow
 ```javascript
 1. Incoming connection on /p2p-send/1.0.0
-2. Generate timestamp-based filename
-3. Create write stream to received/ directory
-4. Pipe incoming stream → buffer → file
-5. Log success message
+2. Read first chunk as metadata header (filename|filesize)
+3. Extract and sanitize filename using path.basename()
+4. Collect remaining chunks as file data
+5. Verify total size matches expected size
+6. Write to received/ directory with original filename
+7. Log success message with filename and size
+```
+
+### File Sending Flow
+```javascript
+1. Read file stats (name, size)
+2. Create metadata header: "filename|filesize"
+3. Connect to receiver via multiaddr
+4. Open stream on /p2p-send/1.0.0 protocol
+5. Send header as first chunk
+6. Send file content as subsequent chunks
+7. Close connection
 ```
 
 ## 📚 Resources

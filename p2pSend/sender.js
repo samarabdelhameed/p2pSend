@@ -4,11 +4,12 @@ import { mplex } from '@libp2p/mplex';
 import { noise } from '@chainsafe/libp2p-noise';
 import { multiaddr } from '@multiformats/multiaddr';
 import fs from 'node:fs';
+import path from 'node:path';
 
 const PROTOCOL = '/p2p-send/1.0.0';
 
 // العنوان الحالي للـ receiver
-const RECEIVER_ADDR = '/ip4/127.0.0.1/tcp/51694/p2p/12D3KooWQQ3XNY1piGUv8x6m3gaV9Tn8Yd2ZcJKdCMCasZ5woqS6';
+const RECEIVER_ADDR = '/ip4/127.0.0.1/tcp/57482/p2p/12D3KooWLwDcwDSpyEpgCBZbF85Q3BuLUoTUw6TcvK4GPukGJoPW';
 
 (async () => {
   const node = await createLibp2p({
@@ -20,27 +21,24 @@ const RECEIVER_ADDR = '/ip4/127.0.0.1/tcp/51694/p2p/12D3KooWQQ3XNY1piGUv8x6m3gaV
 
   await node.start();
   console.log('Sender node started');
-  console.log('Sender Peer ID:', node.peerId.toString());
 
-  // نحول الـ string لـ multiaddr object
   const receiverMultiaddr = multiaddr(RECEIVER_ADDR);
 
-  console.log('Connecting to receiver...');
-  // نتصل بالـ receiver
-  const connection = await node.dial(receiverMultiaddr);
-  console.log('Connected to receiver');
-
-  // نفتح stream على الـ protocol
-  console.log('Opening stream...');
+  await node.dial(receiverMultiaddr);
   const stream = await node.dialProtocol(receiverMultiaddr, PROTOCOL);
 
-  // نبعت الملف
   const filePath = 'test.txt';
-  const fileContent = fs.readFileSync(filePath);
-  
-  await stream.sink([fileContent]);
+  const stat = fs.statSync(filePath);
+  const fileName = path.basename(filePath);
+  const fileSize = stat.size;
 
-  console.log(`✅ Sent ${filePath}`);
+  // header: name|size
+  const header = Buffer.from(`${fileName}|${fileSize}`);
+  const fileContent = fs.readFileSync(filePath);
+
+  await stream.sink([header, fileContent]);
+
+  console.log(`✅ Sent ${fileName} (${fileSize} bytes)`);
 
   await node.stop();
 })();
