@@ -37,8 +37,6 @@ const PROTOCOL = '/p2p-send/1.0.0';
       chunks.push(chunk.subarray());
     }
 
-    const totalSize = chunks.reduce((sum, c) => sum + c.length, 0);
-    
     // حساب الـ hash للملف المستقبل
     const hash = crypto.createHash('sha256');
     chunks.forEach(c => hash.update(c));
