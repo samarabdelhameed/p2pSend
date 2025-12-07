@@ -3,3 +3,6 @@ node_modules/
 *.log
 p2pSend/received/*
 !p2pSend/received/.gitkeep
+
+# Local Netlify folder
+.netlify

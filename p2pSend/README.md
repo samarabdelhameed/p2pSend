@@ -4,6 +4,12 @@ Send files directly peer-to-peer with **SHA-256 verification** and **end-to-end 
 
 🌐 **Web Interface** + 💻 **CLI** + 🔐 **Encrypted** + ⚡ **Real-time**
 
+## 🌐 Live Demo
+
+**Frontend:** [https://p2psend.surge.sh](https://p2psend.surge.sh)
+
+> **Note:** For full functionality, the backend server needs to run locally. See [Running the Application](#-running-the-application) below.
+
 ---
 
 ## 🚀 Quick Start
