@@ -1,71 +1,95 @@
-# p2pSend – CLI P2P File Transfer
+# p2pSend – P2P File Transfer
 
 Send any file directly to another peer **without servers** – SHA-256 verified.
 
-## 🚀 Install
+🌐 **Web Interface** + 💻 **CLI** + 🔐 **Encrypted** + ⚡ **Real-time**
 
+## 🚀 Quick Start
+
+### Install Dependencies
 ```bash
 git clone https://github.com/samarabdelhameed/p2pSend.git
 cd p2pSend/p2pSend
 npm install
-npm link
+npm link  # For CLI
+
+cd frontend
+npm install
+```
+
+### Start Backend
+```bash
+npm run server
+```
+
+### Start Frontend
+```bash
+cd frontend
+npm run dev
+```
+
+### Open Browser
+```
+http://localhost:5173
 ```
 
 ## 📦 Usage
 
-### Start Receiver
+### Option 1: Web Interface (Recommended)
+
+**Receiver:**
+1. Open `http://localhost:5173`
+2. Click **"Receive"**
+3. Copy the address shown
+4. Share with sender
+
+**Sender:**
+1. Open `http://localhost:5173` (new tab)
+2. Click **"Send File"**
+3. Select/drop file
+4. Paste receiver address
+5. Click **"Start Transfer"**
+
+### Option 2: CLI
+
+**Receiver:**
 ```bash
 p2psend receive
 ```
 
-Output:
-```
-Receiver ready
-Peer ID: 12D3KooW...
-Addresses: [
-  '/ip4/127.0.0.1/tcp/50322/p2p/12D3KooW...',
-  '/ip4/192.168.1.x/tcp/50322/p2p/12D3KooW...'
-]
-```
-
-Copy one of the addresses.
-
-### Send File
+**Sender:**
 ```bash
-p2psend send <file> --to <receiver-address>
-```
-
-**Example:**
-```bash
-p2psend send document.pdf --to /ip4/127.0.0.1/tcp/50322/p2p/12D3KooWBgEWKgRtquDQP5YxDi41BsXgvLJS1kcgZWBfTDF5Sjkw
-```
-
-**Output:**
-```
-✅ Sent document.pdf (1024 bytes)
-```
-
-**Receiver shows:**
-```
-📥 Incoming: document.pdf | 1024 bytes
-✅ Saved: /path/to/received/document.pdf | Hash verified
+p2psend send document.pdf --to /ip4/127.0.0.1/tcp/xxxxx/p2p/12D3KooW...
 ```
 
 ## ✨ Features
 
-- ✅ **No servers** – Direct P2P transfer using libp2p
-- ✅ **SHA-256 verification** – Automatic integrity check
-- ✅ **Original filename** – Files saved with correct names
-- ✅ **CLI interface** – Easy to use from command line
-- ✅ **Encrypted** – Noise protocol encryption
-- ✅ **Cross-platform** – Works on any OS with Node.js
+- 🌐 **Web Interface** – Modern React UI with real-time updates
+- 💻 **CLI Interface** – Command-line for power users
+- 🔐 **Encrypted** – Noise protocol end-to-end encryption
+- ✅ **SHA-256 Verification** – Automatic integrity check
+- ⚡ **Real-time Progress** – WebSocket live updates
+- 📁 **Original Filename** – Files saved with correct names
+- 🚀 **No Servers** – Direct P2P transfer using libp2p
+- 🌍 **Cross-platform** – Works on Mac, Linux, Windows
 
-## 🔧 Built With
+## 🔧 Tech Stack
 
-- **libp2p** – Modular P2P networking stack
-- **Commander** – CLI framework
-- **Noise Protocol** – Encrypted connections
-- **SHA-256** – File integrity verification
+### Backend
+- **libp2p** – P2P networking (TCP, mplex, Noise)
+- **Express** – REST API server
+- **WebSocket** – Real-time bidirectional communication
+- **Node.js** – Runtime environment
+
+### Frontend
+- **React** – UI framework
+- **TypeScript** – Type-safe development
+- **Vite** – Fast build tool
+- **Tailwind CSS** – Styling
+
+### Security
+- **Noise Protocol** – End-to-end encryption
+- **SHA-256** – Cryptographic hash verification
 
 ## 📋 CLI Commands
 
