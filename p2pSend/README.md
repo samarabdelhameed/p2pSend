@@ -10,6 +10,10 @@ Send files directly peer-to-peer with **SHA-256 verification** and **end-to-end 
 
 > **Note:** For full functionality, the backend server needs to run locally. See [Running the Application](#-running-the-application) below.
 
+## 🎥 Demo Video
+
+https://github.com/samarabdelhameed/p2pSend/assets/demo.mp4
+
 ---
 
 ## 🚀 Quick Start
