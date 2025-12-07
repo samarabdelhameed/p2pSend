@@ -12,7 +12,9 @@ Send files directly peer-to-peer with **SHA-256 verification** and **end-to-end 
 
 ## 🎥 Demo Video
 
-https://github.com/samarabdelhameed/p2pSend/assets/demo.mp4
+![Demo Video](demo.mp4)
+
+[📹 Watch Demo Video](https://github.com/samarabdelhameed/p2pSend/raw/main/p2pSend/demo.mp4)
 
 ---
 
