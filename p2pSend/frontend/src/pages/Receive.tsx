@@ -17,6 +17,7 @@ export default function Receive({ onNavigate }: ReceiveProps) {
   const [receiverAddr, setReceiverAddr] = useState('');
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
+  const [filePath, setFilePath] = useState('');
 
   useEffect(() => {
     // Start receiver and connect WebSocket
@@ -42,6 +43,7 @@ export default function Receive({ onNavigate }: ReceiveProps) {
         } else if (msg.status === 'progress') {
           setProgress(msg.progress || 0);
         } else if (msg.status === 'complete') {
+          setFilePath(msg.filePath || '');
           setStep(3);
         } else if (msg.status === 'error') {
           setError(msg.message || 'Transfer failed');
@@ -51,13 +53,23 @@ export default function Receive({ onNavigate }: ReceiveProps) {
 
     return () => {
       unsubscribe();
-      p2pClient.stopReceiver();
+      // Don't stop receiver on unmount - keep it running
     };
   }, []);
 
   const handleDownload = () => {
-    alert('File saved in received/ folder');
-    onNavigate('landing');
+    if (fileName) {
+      // Download file from server
+      const downloadUrl = `http://localhost:3001/api/download/${encodeURIComponent(fileName)}`;
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      alert('File saved in received/ folder');
+    }
   };
 
   const handleCopy = async () => {

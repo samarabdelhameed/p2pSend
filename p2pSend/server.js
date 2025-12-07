@@ -15,7 +15,8 @@ const app = express();
 const PORT = 3001;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '100mb' })); // Increase payload limit
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // Store active libp2p nodes
 let receiverNode = null;
@@ -142,7 +143,10 @@ app.post('/api/sender/send', async (req, res) => {
   try {
     const { fileName, fileData, receiverAddr } = req.body;
 
+    console.log('📤 Send request:', { fileName, receiverAddr, dataSize: fileData?.length });
+
     if (!fileName || !fileData || !receiverAddr) {
+      console.error('❌ Missing fields:', { fileName: !!fileName, fileData: !!fileData, receiverAddr: !!receiverAddr });
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -212,6 +216,7 @@ app.post('/api/sender/send', async (req, res) => {
       hash: fileHash
     });
   } catch (error) {
+    console.error('❌ Send error:', error);
     broadcast({ type: 'sending', status: 'error', message: error.message });
     res.status(500).json({ error: error.message });
   }
@@ -225,6 +230,22 @@ app.post('/api/receiver/stop', async (req, res) => {
       receiverNode = null;
     }
     res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Download file
+app.get('/api/download/:filename', (req, res) => {
+  try {
+    const filename = path.basename(req.params.filename); // Security: prevent path traversal
+    const filePath = path.join(process.cwd(), 'received', filename);
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    
+    res.download(filePath, filename);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

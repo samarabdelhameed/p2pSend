@@ -69,18 +69,30 @@ export default function Send({ onNavigate }: SendProps) {
       // Convert file to base64
       const reader = new FileReader();
       reader.onload = async () => {
-        const base64 = (reader.result as string).split(',')[1];
-        
-        await p2pClient.sendFile({
-          fileName: file.name,
-          fileData: base64,
-          receiverAddr: receiverAddr.trim()
-        });
+        try {
+          const base64 = (reader.result as string).split(',')[1];
+          
+          await p2pClient.sendFile({
+            fileName: file.name,
+            fileData: base64,
+            receiverAddr: receiverAddr.trim()
+          });
+        } catch (err: any) {
+          setError(err.message || 'Failed to send file');
+          setSending(false);
+          setStep(2);
+        }
+      };
+      reader.onerror = () => {
+        setError('Failed to read file');
+        setSending(false);
+        setStep(2);
       };
       reader.readAsDataURL(file);
     } catch (err: any) {
       setError(err.message);
       setSending(false);
+      setStep(2);
     }
   };
 

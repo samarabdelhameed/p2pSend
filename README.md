@@ -69,37 +69,56 @@ libp2p-file-share/
 git clone https://github.com/samarabdelhameed/p2pSend.git
 cd p2pSend/p2pSend
 npm install
+npm link  # Install CLI globally
 ```
 
-### Easy Way: Interactive CLI (Recommended for Users)
+### CLI Usage (Recommended)
 
+The CLI provides a simple command-line interface for P2P file transfer without editing code.
+
+#### Start Receiver (Terminal 1)
 ```bash
-npm run cli
+p2psend receive
 ```
 
-The CLI will ask you:
-1. **Receive a file** or **Send a file**?
-2. If receiving: Shows your address (share it with sender)
-3. If sending: Enter file path and receiver address
-
-**Example Flow:**
-
-**Terminal 1 (Receiver):**
+This will output:
 ```
-🚀 p2pSend CLI – Easy P2P File Transfer
-? What do you want to do? Receive a file
-📋 Your receiver address:
-   /ip4/127.0.0.1/tcp/xxxxx/p2p/12D3KooW...
-⏳ Waiting for files...
+Receiver ready
+Peer ID: 12D3KooW...
+Addresses: [
+  '/ip4/127.0.0.1/tcp/xxxxx/p2p/12D3KooW...',
+  '/ip4/192.168.1.x/tcp/xxxxx/p2p/12D3KooW...'
+]
 ```
 
-**Terminal 2 (Sender):**
+Copy one of the addresses to share with the sender.
+
+#### Send File (Terminal 2)
+```bash
+p2psend send <file> --to <receiver-address>
 ```
-🚀 p2pSend CLI – Easy P2P File Transfer
-? What do you want to do? Send a file
-? Enter file path: /path/to/myfile.pdf
-? Paste receiver address: /ip4/127.0.0.1/tcp/xxxxx/p2p/12D3KooW...
-✅ Sent myfile.pdf (1024 bytes) | hash: abc123...
+
+**Example:**
+```bash
+p2psend send document.pdf --to /ip4/127.0.0.1/tcp/50322/p2p/12D3KooWBgEWKgRtquDQP5YxDi41BsXgvLJS1kcgZWBfTDF5Sjkw
+```
+
+**Output:**
+```
+✅ Sent document.pdf (1024 bytes)
+```
+
+**Receiver will show:**
+```
+📥 Incoming: document.pdf | 1024 bytes
+✅ Saved: /path/to/received/document.pdf | Hash verified
+```
+
+#### CLI Help
+```bash
+p2psend --help
+p2psend send --help
+p2psend receive --help
 ```
 
 ### Advanced: Direct Node Usage
@@ -112,13 +131,6 @@ node index.js
 **Run Sender:**
 1. Edit `sender.js` and update `RECEIVER_ADDR`
 2. Run: `node sender.js`
-
-### Quick Test (Both Nodes)
-```bash
-node simple-test.js
-```
-
-This runs both sender and receiver in a single process for quick testing.
 
 ## 📡 Network Protocol
 
@@ -179,6 +191,10 @@ This runs both sender and receiver in a single process for quick testing.
 - [x] **Original filename preservation** ✨
 - [x] **File size verification** ✨
 - [x] **Path traversal protection** ✨
+- [x] **SHA256 hash verification** ✨
+- [x] **CLI interface with commander** ✨
+- [x] **Dynamic file selection** ✨
+- [x] **Receiver daemon mode** ✨
 
 ### 📊 Test Results
 
@@ -242,14 +258,16 @@ Hello from libp2p!
 - [x] Original filename preservation ✅
 - [x] File size verification ✅
 - [x] Path traversal protection ✅
+- [x] Hash verification (SHA256 integrity check) ✅
+- [x] CLI interface with commander ✅
+- [x] Dynamic file selection ✅
+- [x] Receiver daemon mode ✅
 - [ ] File chunking for large files
-- [ ] Hash verification (integrity check)
 - [ ] Progress tracking
 - [ ] Peer discovery mechanisms
 - [ ] Bootstrap nodes configuration
 - [ ] Resume interrupted transfers
 - [ ] Multi-file support
-- [ ] CLI interface
 - [ ] NAT traversal support
 
 ## 🧪 Development
