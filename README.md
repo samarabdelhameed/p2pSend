@@ -17,7 +17,9 @@ This application uses **real libp2p 2.x** in both browser and Node.js. There is 
 
 ## 🌐 Live Demo
 
-**Frontend:** [https://p2psend.surge.sh](https://p2psend.surge.sh)
+**Frontend (Vercel):** [https://frontend-qotajs9kg-samarabdelhameeds-projects-df99c328.vercel.app](https://frontend-qotajs9kg-samarabdelhameeds-projects-df99c328.vercel.app)
+
+**Frontend (Surge):** [https://p2psend.surge.sh](https://p2psend.surge.sh)
 
 > **Note:** This is a true P2P app - no backend server needed! Files transfer directly between browsers.
 
