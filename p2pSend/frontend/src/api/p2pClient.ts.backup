@@ -264,6 +264,46 @@ class P2PClient {
       });
 
       // Parse receiver address
+      let receiverMultiaddr = multiaddr(receiverAddr);
+      
+      // If it's just a peer ID, try to find the peer through relay
+      if (receiverAddr.startsWith('/p2p/')) {
+        const peerId = receiverAddr.replace('/p2p/', '');
+        console.log('Attempting to connect to peer via relay:', peerId);
+        
+        // Wait for bootstrap connections
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Try to connect through circuit relay
+        const relayAddrs = [
+          `/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN/p2p-circuit/p2p/${peerId}`,
+          `/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa/p2p-circuit/p2p/${peerId}`,
+          `/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ/p2p-circuit/p2p/${peerId}`
+        ];
+        
+        let connected = false;
+        for (const addr of relayAddrs) {
+          try {
+            console.log('Trying relay address:', addr);
+            receiverMultiaddr = multiaddr(addr);
+            await this.node.dial(receiverMultiaddr);
+            connected = true;
+            console.log('✅ Connected via relay:', addr);
+            break;
+          } catch (err) {
+            console.log('Failed to connect via relay:', addr, err);
+            continue;
+          }
+        }
+        
+        if (!connected) {
+          throw new Error('Could not connect to receiver via any relay. Make sure the receiver is online and connected to the network.');
+        }
+      } else {
+        // Direct connection with full multiaddr
+        await this.node.dial(receiverMultiaddr);
+      }
+
       // Open stream
       const stream = await this.node.dialProtocol(receiverMultiaddr, PROTOCOL);
 
