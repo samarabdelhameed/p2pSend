@@ -17,7 +17,7 @@ This application uses **real libp2p 2.x** in both browser and Node.js. There is 
 
 ## 🌐 Live Demo
 
-**Frontend (Vercel):** [https://frontend-cdgbmoz7f-samarabdelhameeds-projects-df99c328.vercel.app](https://frontend-cdgbmoz7f-samarabdelhameeds-projects-df99c328.vercel.app)
+**Frontend (Vercel):** [https://frontend-ebetminzf-samarabdelhameeds-projects-df99c328.vercel.app](https://frontend-ebetminzf-samarabdelhameeds-projects-df99c328.vercel.app)
 
 **Frontend (Surge):** [https://p2psend.surge.sh](https://p2psend.surge.sh)
 
