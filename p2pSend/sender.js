@@ -11,7 +11,7 @@ import crypto from 'node:crypto';
 const PROTOCOL = '/p2p-send/1.0.0';
 
 // العنوان الحالي للـ receiver
-const RECEIVER_ADDR = '/ip4/127.0.0.1/tcp/51281/p2p/12D3KooWT3Lu8zNFUHKd5QSLq6Dk5FPuY1KPQxbQPG64EntM48sW';
+const RECEIVER_ADDR = '/ip4/127.0.0.1/tcp/53575/p2p/12D3KooWRAChny73nJv8TDVqZGkmdzcX5NZspAZLdBm4kX4VoaNx';
 
 (async () => {
   const node = await createLibp2p({
@@ -32,7 +32,7 @@ const RECEIVER_ADDR = '/ip4/127.0.0.1/tcp/51281/p2p/12D3KooWT3Lu8zNFUHKd5QSLq6Dk
   await node.dial(receiverMultiaddr);
   const stream = await node.dialProtocol(receiverMultiaddr, PROTOCOL);
 
-  const filePath = 'test-file.txt';
+  const filePath = 'test-v3.txt';
   const stat = fs.statSync(filePath);
   const fileName = path.basename(filePath);
   const fileSize = stat.size;
@@ -46,7 +46,12 @@ const RECEIVER_ADDR = '/ip4/127.0.0.1/tcp/51281/p2p/12D3KooWT3Lu8zNFUHKd5QSLq6Dk
   // header: name|size|hash
   const header = Buffer.from(`${fileName}|${fileSize}|${fileHash}`);
 
-  await stream.sink([header, fileContent]);
+  console.log('Sending header:', header.toString());
+  console.log('Sending file content:', fileContent.length, 'bytes');
+  
+  stream.send(header);
+  stream.send(fileContent);
+  await stream.close();
 
   console.log(`✅ Sent ${fileName} (${fileSize} bytes) | hash: ${fileHash}`);
 

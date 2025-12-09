@@ -33,16 +33,18 @@ program
       }
     });
 
-    node.handle(PROTOCOL, async ({ stream }) => {
+    node.handle(PROTOCOL, async (stream) => {
       let fileName = '';
       let fileSize = 0;
       let expectedHash = '';
       let headerDone = false;
       const chunks = [];
 
-      for await (const chunk of stream.source) {
+      for await (const chunk of stream) {
+        const data = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+        
         if (!headerDone) {
-          const header = chunk.subarray().toString();
+          const header = new TextDecoder().decode(data);
           const [name, size, hash] = header.split('|');
           fileName = path.basename(name);
           fileSize = parseInt(size, 10);
@@ -51,7 +53,7 @@ program
           console.log(`📥 Incoming: ${fileName} | ${fileSize} bytes`);
           continue;
         }
-        chunks.push(chunk.subarray());
+        chunks.push(data);
       }
 
       const hash = crypto.createHash('sha256');
@@ -114,7 +116,9 @@ program
     const fileHash = hash.digest('hex');
 
     const header = Buffer.from(`${fileName}|${fileSize}|${fileHash}`);
-    await stream.sink([header, fileContent]);
+    stream.send(header);
+    stream.send(fileContent);
+    await stream.close();
 
     console.log(`✅ Sent ${fileName} (${fileSize} bytes)`);
 

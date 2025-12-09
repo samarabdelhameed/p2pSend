@@ -20,31 +20,48 @@ const PROTOCOL = '/p2p-send/1.0.0';
     }
   });
 
-  node.handle(PROTOCOL, async ({ stream }) => {
-    let fileName = '';
-    let fileSize = 0;
-    let expectedHash = '';
-    let headerDone = false;
-    const chunks = [];
-
-    for await (const chunk of stream.source) {
-      if (!headerDone) {
-        const header = chunk.subarray().toString();
-        const [name, size, hash] = header.split('|');
-        fileName = path.basename(name); // منعًا للـ path traversal
-        fileSize = parseInt(size, 10);
-        expectedHash = hash;
-        headerDone = true;
-        console.log(`📥 Incoming: ${fileName} | ${fileSize} bytes`);
-        continue;
-      }
-      chunks.push(chunk.subarray());
+  node.handle(PROTOCOL, async (stream) => {
+    const allData = [];
+    
+    // Collect all data first
+    for await (const chunk of stream) {
+      const data = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+      console.log('Received chunk:', data.length, 'bytes');
+      allData.push(data);
     }
+    
+    console.log('Total chunks received:', allData.length);
+    
+    if (allData.length === 0) {
+      console.error('❌ No data received');
+      return;
+    }
+    
+    // Parse header from first chunk
+    const headerChunk = allData[0];
+    const header = new TextDecoder().decode(headerChunk);
+    console.log('Header:', header);
+    const parts = header.split('|');
+    
+    if (parts.length !== 3) {
+      console.error('❌ Invalid header format:', header);
+      return;
+    }
+    
+    const [name, size, hash] = parts;
+    const fileName = path.basename(name);
+    const fileSize = parseInt(size, 10);
+    const expectedHash = hash;
+    
+    console.log(`📥 Incoming: ${fileName} | ${fileSize} bytes | hash: ${expectedHash}`);
+    
+    // File data is in remaining chunks
+    const chunks = allData.slice(1);
 
     // حساب الـ hash للملف المستقبل
-    const hash = crypto.createHash('sha256');
-    chunks.forEach(c => hash.update(c));
-    const actualHash = hash.digest('hex');
+    const hashCalculator = crypto.createHash('sha256');
+    chunks.forEach(c => hashCalculator.update(c));
+    const actualHash = hashCalculator.digest('hex');
 
     if (actualHash !== expectedHash) {
       console.error(`❌ Hash mismatch! expected ${expectedHash}, got ${actualHash}`);

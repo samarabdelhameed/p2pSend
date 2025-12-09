@@ -61,7 +61,7 @@ class P2PClient {
     if (!this.node) throw new Error('Node not initialized');
 
     // Register protocol handler
-    await this.node.handle(PROTOCOL, async ({ stream }) => {
+    await this.node.handle(PROTOCOL, async (stream) => {
       await this.handleIncomingFile(stream);
     });
 
@@ -86,8 +86,8 @@ class P2PClient {
         status: 'started'
       });
 
-      for await (const chunk of stream.source) {
-        const data = chunk.subarray();
+      for await (const chunk of stream) {
+        const data = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
 
         if (!headerDone) {
           const header = new TextDecoder().decode(data);
@@ -219,7 +219,11 @@ class P2PClient {
       }
 
       // Send all chunks
-      await stream.sink(chunks);
+      for (const chunk of chunks) {
+        stream.send(chunk);
+      }
+      
+      await stream.close();
 
       this.notifyListeners({
         type: 'sending',
