@@ -17,24 +17,29 @@ export default function Receive({ onNavigate }: ReceiveProps) {
   const [receiverAddr, setReceiverAddr] = useState('');
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
-  const [filePath, setFilePath] = useState('');
 
   useEffect(() => {
-    // Start receiver and connect WebSocket
     const init = async () => {
       try {
-        p2pClient.connectWebSocket();
-        const info = await p2pClient.startReceiver();
-        setReceiverAddr(info.addresses[0] || '');
+        await p2pClient.initialize();
+        await p2pClient.startReceiver();
+        
+        // Get all addresses or fallback to peer ID
+        const addresses = p2pClient.getAddresses();
+        if (addresses.length > 0) {
+          setReceiverAddr(addresses[0]);
+        } else {
+          setReceiverAddr(`/p2p/${p2pClient.getPeerId()}`);
+        }
       } catch (err: any) {
-        setError(err.message);
+        setError(`Failed to start receiver: ${err.message}`);
       }
     };
 
     init();
 
     // Listen for incoming files
-    const unsubscribe = p2pClient.onMessage((msg) => {
+    const unsubscribe = p2pClient.onProgress((msg) => {
       if (msg.type === 'receiving') {
         if (msg.status === 'metadata') {
           setFileName(msg.fileName || '');
@@ -43,7 +48,6 @@ export default function Receive({ onNavigate }: ReceiveProps) {
         } else if (msg.status === 'progress') {
           setProgress(msg.progress || 0);
         } else if (msg.status === 'complete') {
-          setFilePath(msg.filePath || '');
           setStep(3);
         } else if (msg.status === 'error') {
           setError(msg.message || 'Transfer failed');
@@ -53,23 +57,12 @@ export default function Receive({ onNavigate }: ReceiveProps) {
 
     return () => {
       unsubscribe();
-      // Don't stop receiver on unmount - keep it running
     };
   }, []);
 
   const handleDownload = () => {
-    if (fileName) {
-      // Download file from server
-      const downloadUrl = `http://localhost:3001/api/download/${encodeURIComponent(fileName)}`;
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      alert('File saved in received/ folder');
-    }
+    // File is already downloaded automatically by the P2P client
+    alert('File has been downloaded to your Downloads folder!');
   };
 
   const handleCopy = async () => {

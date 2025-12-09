@@ -1,3 +1,14 @@
+/**
+ * ⚠️ LEGACY FILE - NO LONGER NEEDED ⚠️
+ * 
+ * This file is from the old client-server architecture.
+ * The application now uses TRUE peer-to-peer with libp2p in the browser.
+ * 
+ * This file can be safely deleted.
+ * 
+ * See ARCHITECTURE.md and MIGRATION.md for details.
+ */
+
 import express from 'express';
 import { WebSocketServer } from 'ws';
 import { createLibp2p } from 'libp2p';

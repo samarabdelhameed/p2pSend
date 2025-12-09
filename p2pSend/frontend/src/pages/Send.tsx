@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Upload, Copy, Check, Share2 } from 'lucide-react';
+import { ArrowLeft, Upload, Share2 } from 'lucide-react';
 import Stepper from '../components/Stepper';
 import Button from '../components/Button';
 import Logo from '../components/Logo';
@@ -13,7 +13,6 @@ export default function Send({ onNavigate }: SendProps) {
   const [step, setStep] = useState(1);
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [progress, setProgress] = useState(0);
   const [receiverAddr, setReceiverAddr] = useState('');
   const [error, setError] = useState('');
@@ -21,15 +20,17 @@ export default function Send({ onNavigate }: SendProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    p2pClient.connectWebSocket();
+    p2pClient.initialize().catch(err => {
+      setError(`Failed to initialize P2P: ${err.message}`);
+    });
 
-    const unsubscribe = p2pClient.onMessage((msg) => {
+    const unsubscribe = p2pClient.onProgress((msg) => {
       if (msg.type === 'sending') {
         if (msg.status === 'progress') {
           setProgress(msg.progress || 0);
         } else if (msg.status === 'complete') {
           setTimeout(() => {
-            alert('File sent successfully!');
+            alert('File sent successfully via P2P!');
             onNavigate('landing');
           }, 1000);
         } else if (msg.status === 'error') {
@@ -66,31 +67,12 @@ export default function Send({ onNavigate }: SendProps) {
     setError('');
 
     try {
-      // Convert file to base64
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const base64 = (reader.result as string).split(',')[1];
-          
-          await p2pClient.sendFile({
-            fileName: file.name,
-            fileData: base64,
-            receiverAddr: receiverAddr.trim()
-          });
-        } catch (err: any) {
-          setError(err.message || 'Failed to send file');
-          setSending(false);
-          setStep(2);
-        }
-      };
-      reader.onerror = () => {
-        setError('Failed to read file');
-        setSending(false);
-        setStep(2);
-      };
-      reader.readAsDataURL(file);
+      await p2pClient.sendFile({
+        file,
+        receiverAddr: receiverAddr.trim()
+      });
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Failed to send file');
       setSending(false);
       setStep(2);
     }
