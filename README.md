@@ -101,7 +101,7 @@ http://localhost:5173
 ### Download Received File:
 1. After transfer completes, click **"Download File"**
 2. File will be downloaded to your Downloads folder
-3. File is also saved in `p2pSend/received/` directory
+3. File is also saved in `received/` directory
 
 ---
 
