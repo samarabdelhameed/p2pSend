@@ -4,6 +4,9 @@ import { yamux } from '@chainsafe/libp2p-yamux';
 import { noise } from '@chainsafe/libp2p-noise';
 import { identify } from '@libp2p/identify';
 import { multiaddr } from '@multiformats/multiaddr';
+import { pipe } from 'it-pipe';
+import * as lp from 'it-length-prefixed';
+import { Uint8ArrayList } from 'uint8arraylist';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -11,7 +14,7 @@ import crypto from 'node:crypto';
 const PROTOCOL = '/p2p-send/1.0.0';
 
 // العنوان الحالي للـ receiver
-const RECEIVER_ADDR = '/ip4/127.0.0.1/tcp/53575/p2p/12D3KooWRAChny73nJv8TDVqZGkmdzcX5NZspAZLdBm4kX4VoaNx';
+const RECEIVER_ADDR = '/ip4/127.0.0.1/tcp/57750/p2p/12D3KooWLTNrn7mqcYjZDBZrsRxccwZZgrZdJbLvgwnRCHVVzpKz';
 
 (async () => {
   const node = await createLibp2p({
@@ -32,7 +35,7 @@ const RECEIVER_ADDR = '/ip4/127.0.0.1/tcp/53575/p2p/12D3KooWRAChny73nJv8TDVqZGkm
   await node.dial(receiverMultiaddr);
   const stream = await node.dialProtocol(receiverMultiaddr, PROTOCOL);
 
-  const filePath = 'test-v3.txt';
+  const filePath = 'test-large.txt';
   const stat = fs.statSync(filePath);
   const fileName = path.basename(filePath);
   const fileSize = stat.size;
@@ -49,9 +52,13 @@ const RECEIVER_ADDR = '/ip4/127.0.0.1/tcp/53575/p2p/12D3KooWRAChny73nJv8TDVqZGkm
   console.log('Sending header:', header.toString());
   console.log('Sending file content:', fileContent.length, 'bytes');
   
-  stream.send(header);
-  stream.send(fileContent);
-  await stream.close();
+  // Send data using sendData method with Uint8ArrayList
+  const headerList = new Uint8ArrayList(new Uint8Array(header));
+  const contentList = new Uint8ArrayList(new Uint8Array(fileContent));
+  
+  stream.sendData(headerList);
+  stream.sendData(contentList);
+  stream.sendCloseWrite();
 
   console.log(`✅ Sent ${fileName} (${fileSize} bytes) | hash: ${fileHash}`);
 

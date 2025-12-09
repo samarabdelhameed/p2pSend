@@ -25,7 +25,8 @@ const PROTOCOL = '/p2p-send/1.0.0';
     
     // Collect all data first
     for await (const chunk of stream) {
-      const data = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+      // Convert Uint8ArrayList to Buffer
+      const data = chunk.subarray ? chunk.subarray() : (chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk));
       console.log('Received chunk:', data.length, 'bytes');
       allData.push(data);
     }

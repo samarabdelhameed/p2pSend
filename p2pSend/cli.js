@@ -6,6 +6,7 @@ import { yamux } from '@chainsafe/libp2p-yamux';
 import { noise } from '@chainsafe/libp2p-noise';
 import { identify } from '@libp2p/identify';
 import { multiaddr } from '@multiformats/multiaddr';
+import { pipe } from 'it-pipe';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -34,41 +35,45 @@ program
     });
 
     node.handle(PROTOCOL, async (stream) => {
-      let fileName = '';
-      let fileSize = 0;
-      let expectedHash = '';
-      let headerDone = false;
       const chunks = [];
-
+      
+      // Read all data from stream
       for await (const chunk of stream) {
-        const data = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
-        
-        if (!headerDone) {
-          const header = new TextDecoder().decode(data);
-          const [name, size, hash] = header.split('|');
-          fileName = path.basename(name);
-          fileSize = parseInt(size, 10);
-          expectedHash = hash;
-          headerDone = true;
-          console.log(`📥 Incoming: ${fileName} | ${fileSize} bytes`);
-          continue;
-        }
-        chunks.push(data);
+        chunks.push(chunk.subarray());
       }
-
-      const hash = crypto.createHash('sha256');
-      chunks.forEach(c => hash.update(c));
-      const actualHash = hash.digest('hex');
+      
+      // Combine all chunks
+      const allData = Buffer.concat(chunks);
+      
+      // Find newline separator between header and file content
+      const newlineIndex = allData.indexOf('\n');
+      if (newlineIndex === -1) {
+        console.error('❌ Invalid data format');
+        return;
+      }
+      
+      // Parse header
+      const headerStr = allData.subarray(0, newlineIndex).toString();
+      const [name, size, hash] = headerStr.split('|');
+      const fileName = path.basename(name);
+      const fileSize = parseInt(size, 10);
+      const expectedHash = hash;
+      
+      console.log(`📥 Incoming: ${fileName} | ${fileSize} bytes`);
+      
+      // Extract file content (after newline)
+      const fileContent = allData.subarray(newlineIndex + 1);
+      
+      // Calculate hash
+      const actualHash = crypto.createHash('sha256').update(fileContent).digest('hex');
 
       if (actualHash !== expectedHash) {
-        console.error('❌ Hash mismatch');
+        console.error(`❌ Hash mismatch: expected ${expectedHash}, got ${actualHash}`);
         return;
       }
 
       const filePath = path.join(process.cwd(), 'received', fileName);
-      const write = fs.createWriteStream(filePath);
-      for (const c of chunks) write.write(c);
-      write.end();
+      fs.writeFileSync(filePath, fileContent);
       console.log(`✅ Saved: ${filePath} | Hash verified`);
     });
 
@@ -115,9 +120,22 @@ program
     hash.update(fileContent);
     const fileHash = hash.digest('hex');
 
-    const header = Buffer.from(`${fileName}|${fileSize}|${fileHash}`);
-    stream.send(header);
-    stream.send(fileContent);
+    const header = `${fileName}|${fileSize}|${fileHash}\n`;
+    const headerBuffer = Buffer.from(header);
+    
+    // Send data using pipe with async generator as source
+    await pipe(
+      (async function* () {
+        yield headerBuffer;
+        yield fileContent;
+      })(),
+      async (source) => {
+        for await (const chunk of source) {
+          await stream.sendFrame(chunk);
+        }
+      }
+    );
+    
     await stream.close();
 
     console.log(`✅ Sent ${fileName} (${fileSize} bytes)`);
