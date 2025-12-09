@@ -7,6 +7,7 @@ import { identify } from '@libp2p/identify';
 import { circuitRelayTransport } from '@libp2p/circuit-relay-v2';
 import { bootstrap } from '@libp2p/bootstrap';
 import { multiaddr } from '@multiformats/multiaddr';
+import type { Connection } from '@libp2p/interface';
 
 const PROTOCOL = '/p2p-send/1.0.0';
 
@@ -51,10 +52,19 @@ class P2PClient {
       },
       transports: [
         webSockets(),
-        webRTC(),
-        circuitRelayTransport({
-          discoverRelays: 3
-        })
+        webRTC({
+          rtcConfiguration: {
+            iceServers: [
+              {
+                urls: [
+                  'stun:stun.l.google.com:19302',
+                  'stun:global.stun.twilio.com:3478'
+                ]
+              }
+            ]
+          }
+        }),
+        circuitRelayTransport()
       ],
       streamMuxers: [yamux()],
       connectionEncrypters: [noise()],
@@ -62,19 +72,21 @@ class P2PClient {
         identify: identify(),
         bootstrap: bootstrap({
           list: [
-            // libp2p public bootstrap nodes
+            // libp2p public bootstrap nodes with relay support
             '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
             '/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa',
             '/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb',
             '/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt',
-            // Additional relay nodes
-            '/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ',
-            '/ip4/104.131.131.82/udp/4001/quic/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ'
-          ]
+            // Additional public relay nodes
+            '/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ'
+          ],
+          timeout: 10000,
+          tagName: 'bootstrap',
+          tagValue: 50,
+          tagTTL: 120000
         })
       },
       connectionManager: {
-        minConnections: 1,
         maxConnections: 100
       }
     });
@@ -82,6 +94,16 @@ class P2PClient {
     await this.node.start();
     console.log('✅ libp2p node started in browser');
     console.log('Peer ID:', this.node.peerId.toString());
+    
+    // Wait for bootstrap connections
+    console.log('Connecting to bootstrap nodes...');
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    const connections = this.node.getConnections();
+    console.log(`Connected to ${connections.length} peers`);
+    connections.forEach(conn => {
+      console.log('Connected peer:', conn.remotePeer.toString());
+    });
   }
 
   async startReceiver(): Promise<ReceiverInfo> {
@@ -105,11 +127,29 @@ class P2PClient {
     });
     this.handlerRegistered = true;
 
+    // Get all multiaddrs including circuit relay addresses
     const addresses = this.node.getMultiaddrs().map(ma => ma.toString());
+    const peerId = this.node.peerId.toString();
+    
+    // Add circuit relay addresses for each connected peer
+    const connections = this.node.getConnections();
+    const relayAddresses: string[] = [];
+    
+    for (const conn of connections) {
+      const remoteAddr = conn.remoteAddr.toString();
+      // Create circuit relay address through this peer
+      const relayAddr = `${remoteAddr}/p2p-circuit/p2p/${peerId}`;
+      relayAddresses.push(relayAddr);
+    }
+    
+    console.log('Direct addresses:', addresses);
+    console.log('Relay addresses:', relayAddresses);
+    
+    const allAddresses = [...addresses, ...relayAddresses];
     
     return {
-      peerId: this.node.peerId.toString(),
-      addresses: addresses.length > 0 ? addresses : [`/p2p/${this.node.peerId.toString()}`]
+      peerId,
+      addresses: allAddresses.length > 0 ? allAddresses : [`/p2p/${peerId}`]
     };
   }
 
@@ -223,9 +263,46 @@ class P2PClient {
         fileSize: file.size
       });
 
-      // Connect to receiver
-      const receiverMultiaddr = multiaddr(receiverAddr);
-      await this.node.dial(receiverMultiaddr);
+      // Parse receiver address
+      let receiverMultiaddr = multiaddr(receiverAddr);
+      
+      // If it's just a peer ID, try to find the peer through relay
+      if (receiverAddr.startsWith('/p2p/')) {
+        const peerId = receiverAddr.replace('/p2p/', '');
+        console.log('Attempting to connect to peer via relay:', peerId);
+        
+        // Wait for bootstrap connections
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Try to connect through circuit relay
+        const relayAddrs = [
+          `/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN/p2p-circuit/p2p/${peerId}`,
+          `/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa/p2p-circuit/p2p/${peerId}`,
+          `/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ/p2p-circuit/p2p/${peerId}`
+        ];
+        
+        let connected = false;
+        for (const addr of relayAddrs) {
+          try {
+            console.log('Trying relay address:', addr);
+            receiverMultiaddr = multiaddr(addr);
+            await this.node.dial(receiverMultiaddr);
+            connected = true;
+            console.log('✅ Connected via relay:', addr);
+            break;
+          } catch (err) {
+            console.log('Failed to connect via relay:', addr, err);
+            continue;
+          }
+        }
+        
+        if (!connected) {
+          throw new Error('Could not connect to receiver via any relay. Make sure the receiver is online and connected to the network.');
+        }
+      } else {
+        // Direct connection with full multiaddr
+        await this.node.dial(receiverMultiaddr);
+      }
 
       // Open stream
       const stream = await this.node.dialProtocol(receiverMultiaddr, PROTOCOL);

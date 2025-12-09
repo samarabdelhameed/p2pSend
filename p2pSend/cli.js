@@ -2,6 +2,7 @@
 import { Command } from 'commander';
 import { createLibp2p } from 'libp2p';
 import { tcp } from '@libp2p/tcp';
+import { webSockets } from '@libp2p/websockets';
 import { yamux } from '@chainsafe/libp2p-yamux';
 import { noise } from '@chainsafe/libp2p-noise';
 import { identify } from '@libp2p/identify';
@@ -25,8 +26,13 @@ program
   .description('Start receiver daemon')
   .action(async () => {
     const node = await createLibp2p({
-      addresses: { listen: ['/ip4/0.0.0.0/tcp/0'] },
-      transports: [tcp()],
+      addresses: { 
+        listen: [
+          '/ip4/0.0.0.0/tcp/0',
+          '/ip4/0.0.0.0/tcp/0/ws'
+        ] 
+      },
+      transports: [tcp(), webSockets()],
       streamMuxers: [yamux()],
       connectionEncrypters: [noise()],
       services: {
@@ -104,8 +110,13 @@ program
     }
 
     const node = await createLibp2p({
-      addresses: { listen: ['/ip4/0.0.0.0/tcp/0'] },
-      transports: [tcp()],
+      addresses: { 
+        listen: [
+          '/ip4/0.0.0.0/tcp/0',
+          '/ip4/0.0.0.0/tcp/0/ws'
+        ] 
+      },
+      transports: [tcp(), webSockets()],
       streamMuxers: [yamux()],
       connectionEncrypters: [noise()],
       services: {
