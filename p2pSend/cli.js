@@ -6,7 +6,7 @@ import { yamux } from '@chainsafe/libp2p-yamux';
 import { noise } from '@chainsafe/libp2p-noise';
 import { identify } from '@libp2p/identify';
 import { multiaddr } from '@multiformats/multiaddr';
-import { pipe } from 'it-pipe';
+import { Uint8ArrayList } from 'uint8arraylist';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -35,45 +35,53 @@ program
     });
 
     node.handle(PROTOCOL, async (stream) => {
-      const chunks = [];
+      const allData = [];
       
-      // Read all data from stream
+      // Collect all data first
       for await (const chunk of stream) {
-        chunks.push(chunk.subarray());
+        const data = chunk.subarray ? chunk.subarray() : (chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk));
+        allData.push(data);
       }
       
-      // Combine all chunks
-      const allData = Buffer.concat(chunks);
-      
-      // Find newline separator between header and file content
-      const newlineIndex = allData.indexOf('\n');
-      if (newlineIndex === -1) {
-        console.error('❌ Invalid data format');
+      if (allData.length === 0) {
+        console.error('❌ No data received');
         return;
       }
       
-      // Parse header
-      const headerStr = allData.subarray(0, newlineIndex).toString();
-      const [name, size, hash] = headerStr.split('|');
+      // Parse header from first chunk
+      const headerChunk = allData[0];
+      const header = new TextDecoder().decode(headerChunk);
+      const parts = header.split('|');
+      
+      if (parts.length !== 3) {
+        console.error('❌ Invalid header format:', header);
+        return;
+      }
+      
+      const [name, size, hash] = parts;
       const fileName = path.basename(name);
       const fileSize = parseInt(size, 10);
       const expectedHash = hash;
       
       console.log(`📥 Incoming: ${fileName} | ${fileSize} bytes`);
       
-      // Extract file content (after newline)
-      const fileContent = allData.subarray(newlineIndex + 1);
-      
+      // File data is in remaining chunks
+      const chunks = allData.slice(1);
+
       // Calculate hash
-      const actualHash = crypto.createHash('sha256').update(fileContent).digest('hex');
+      const hashCalculator = crypto.createHash('sha256');
+      chunks.forEach(c => hashCalculator.update(c));
+      const actualHash = hashCalculator.digest('hex');
 
       if (actualHash !== expectedHash) {
-        console.error(`❌ Hash mismatch: expected ${expectedHash}, got ${actualHash}`);
+        console.error(`❌ Hash mismatch! expected ${expectedHash}, got ${actualHash}`);
         return;
       }
 
       const filePath = path.join(process.cwd(), 'received', fileName);
-      fs.writeFileSync(filePath, fileContent);
+      const write = fs.createWriteStream(filePath);
+      for (const c of chunks) write.write(c);
+      write.end();
       console.log(`✅ Saved: ${filePath} | Hash verified`);
     });
 
@@ -120,23 +128,15 @@ program
     hash.update(fileContent);
     const fileHash = hash.digest('hex');
 
-    const header = `${fileName}|${fileSize}|${fileHash}\n`;
-    const headerBuffer = Buffer.from(header);
+    const header = Buffer.from(`${fileName}|${fileSize}|${fileHash}`);
     
-    // Send data using pipe with async generator as source
-    await pipe(
-      (async function* () {
-        yield headerBuffer;
-        yield fileContent;
-      })(),
-      async (source) => {
-        for await (const chunk of source) {
-          await stream.sendFrame(chunk);
-        }
-      }
-    );
+    // Send data using sendData method with Uint8ArrayList
+    const headerList = new Uint8ArrayList(new Uint8Array(header));
+    const contentList = new Uint8ArrayList(new Uint8Array(fileContent));
     
-    await stream.close();
+    stream.sendData(headerList);
+    stream.sendData(contentList);
+    stream.sendCloseWrite();
 
     console.log(`✅ Sent ${fileName} (${fileSize} bytes)`);
 
