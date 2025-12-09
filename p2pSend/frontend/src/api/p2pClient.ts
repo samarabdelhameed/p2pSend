@@ -7,7 +7,6 @@ import { identify } from '@libp2p/identify';
 import { circuitRelayTransport } from '@libp2p/circuit-relay-v2';
 import { bootstrap } from '@libp2p/bootstrap';
 import { multiaddr } from '@multiformats/multiaddr';
-import type { Connection } from '@libp2p/interface';
 
 const PROTOCOL = '/p2p-send/1.0.0';
 
@@ -262,8 +261,18 @@ class P2PClient {
         fileName: file.name,
         fileSize: file.size
       });
+      // Try to connect directly with the provided address
+      console.log('Connecting to receiver:', receiverAddr);
+      const receiverMultiaddr = multiaddr(receiverAddr);
+      
+      try {
+        await this.node.dial(receiverMultiaddr);
+        console.log('✅ Connected to receiver');
+      } catch (dialError: any) {
+        console.error('Failed to dial receiver:', dialError);
+        throw new Error(`Cannot connect to receiver: ${dialError.message}. Make sure the receiver is online and the address is correct.`);
+      }
 
-      // Parse receiver address
       // Open stream
       const stream = await this.node.dialProtocol(receiverMultiaddr, PROTOCOL);
 
@@ -295,11 +304,14 @@ class P2PClient {
         });
       }
 
-      // Send all chunks
-      for (const chunk of chunks) {
-        stream.send(chunk);
-      }
+      // Send all chunks using stream.sink
+      const sendChunks = async function* () {
+        for (const chunk of chunks) {
+          yield chunk;
+        }
+      };
       
+      await stream.sink(sendChunks());
       await stream.close();
 
       this.notifyListeners({
