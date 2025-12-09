@@ -4,9 +4,9 @@ A beautiful, modern web application for secure peer-to-peer file transfers with 
 
 ## 🚀 Live Demo
 
-**Production:** [https://frontend-c2ckrpqwe-samarabdelhameeds-projects-df99c328.vercel.app](https://frontend-c2ckrpqwe-samarabdelhameeds-projects-df99c328.vercel.app)
+**Production:** [https://frontend-ivory-three-31.vercel.app](https://frontend-ivory-three-31.vercel.app)
 
-**Vercel Dashboard:** [https://vercel.com/samarabdelhameeds-projects-df99c328/frontend/61qkW3P15navQ5LVBexcwSRRfWri](https://vercel.com/samarabdelhameeds-projects-df99c328/frontend/61qkW3P15navQ5LVBexcwSRRfWri)
+**Alternative URL:** [https://frontend-samarabdelhameeds-projects-df99c328.vercel.app](https://frontend-samarabdelhameeds-projects-df99c328.vercel.app)
 
 ## Features
 
