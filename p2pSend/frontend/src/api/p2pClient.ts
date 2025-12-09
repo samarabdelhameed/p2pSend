@@ -1,10 +1,9 @@
 import { createLibp2p, Libp2p } from 'libp2p';
 import { webSockets } from '@libp2p/websockets';
 import { webRTC } from '@libp2p/webrtc';
-import { mplex } from '@libp2p/mplex';
+import { yamux } from '@chainsafe/libp2p-yamux';
 import { noise } from '@chainsafe/libp2p-noise';
 import { multiaddr } from '@multiformats/multiaddr';
-import type { Stream } from '@libp2p/interface';
 
 const PROTOCOL = '/p2p-send/1.0.0';
 
@@ -41,20 +40,14 @@ class P2PClient {
 
     this.node = await createLibp2p({
       addresses: {
-        listen: [
-          '/webrtc',
-          '/wss/0.0.0.0/tcp/0/ws'
-        ]
+        listen: []
       },
       transports: [
         webSockets(),
         webRTC()
       ],
-      streamMuxers: [mplex()],
-      connectionEncryption: [noise()],
-      connectionManager: {
-        minConnections: 0
-      }
+      streamMuxers: [yamux()],
+      connectionEncrypters: [noise()]
     });
 
     await this.node.start();
@@ -80,7 +73,7 @@ class P2PClient {
     };
   }
 
-  private async handleIncomingFile(stream: Stream): Promise<void> {
+  private async handleIncomingFile(stream: any): Promise<void> {
     try {
       let fileName = '';
       let fileSize = 0;
