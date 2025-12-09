@@ -21,9 +21,14 @@ build/
 p2pSend/received/*
 !p2pSend/received/.gitkeep
 
+# Demo files (large videos)
+*.mp4
+demo/
+
 # IDE
 .vscode/
 .idea/
+.bolt/
 
 # Local Netlify folder
 .netlify
