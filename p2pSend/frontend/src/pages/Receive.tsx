@@ -28,11 +28,14 @@ export default function Receive({ onNavigate }: ReceiveProps) {
         // Only start receiver if component is still mounted
         if (!mounted) return;
         
-        await p2pClient.startReceiver();
+        const receiverInfo = await p2pClient.startReceiver();
         
-        // Use peer ID only for browser-to-browser connection
-        const peerId = p2pClient.getPeerId();
-        setReceiverAddr(`/p2p/${peerId}`);
+        // Use the first available address (prefer relay addresses)
+        if (receiverInfo.addresses.length > 0) {
+          setReceiverAddr(receiverInfo.addresses[0]);
+        } else {
+          setReceiverAddr(`/p2p/${receiverInfo.peerId}`);
+        }
       } catch (err: any) {
         if (mounted) {
           setError(`Failed to start receiver: ${err.message}`);
