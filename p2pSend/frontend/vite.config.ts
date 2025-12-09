@@ -7,8 +7,26 @@ export default defineConfig({
     host: true,
     port: 5173
   },
+  resolve: {
+    alias: {
+      stream: 'stream-browserify',
+      util: 'util'
+    }
+  },
   optimizeDeps: {
-    exclude: ['libp2p', '@libp2p/webrtc', '@libp2p/websockets']
+    esbuildOptions: {
+      target: 'esnext'
+    },
+    include: [
+      'netmask',
+      'eventemitter3',
+      'hashlru',
+      'uint8arrays',
+      'uint8arraylist',
+      'multiformats',
+      '@libp2p/interface',
+      '@libp2p/peer-id'
+    ]
   },
   build: {
     target: 'esnext',

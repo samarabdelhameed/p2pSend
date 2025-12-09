@@ -72,7 +72,14 @@ export default function Send({ onNavigate }: SendProps) {
         receiverAddr: receiverAddr.trim()
       });
     } catch (err: any) {
-      setError(err.message || 'Failed to send file');
+      let errorMsg = err.message || 'Failed to send file';
+      
+      // Add helpful message for common errors
+      if (errorMsg.includes('no valid addresses')) {
+        errorMsg = 'Cannot connect to receiver. Browser-to-browser connections require both peers to be on the same network or use a relay server. Try using the CLI instead: node cli.js receive';
+      }
+      
+      setError(errorMsg);
       setSending(false);
       setStep(2);
     }

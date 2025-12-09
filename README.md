@@ -79,7 +79,49 @@ npm run build      # Build for production
 
 ## 🎯 Running the Application
 
-### Option 1: Web Interface (Recommended)
+### ⚡ Quick Test (Recommended - CLI to CLI)
+
+The easiest way to test P2P file transfer:
+
+#### Terminal 1 - Start Receiver:
+```bash
+cd p2pSend
+node cli.js receive
+```
+
+You'll see output like:
+```
+Receiver ready
+Peer ID: 12D3KooW...
+Addresses: [
+  '/ip4/127.0.0.1/tcp/xxxxx/p2p/12D3KooW...',
+  '/ip4/192.168.1.x/tcp/xxxxx/p2p/12D3KooW...'
+]
+```
+
+**Copy one of the addresses** (the full line starting with `/ip4/...`)
+
+#### Terminal 2 - Send File:
+```bash
+cd p2pSend
+node cli.js send <filename> --to <paste-address-here>
+```
+
+**Example:**
+```bash
+node cli.js send README.md --to /ip4/127.0.0.1/tcp/58897/p2p/12D3KooWR6BZw8wdG4GdFKTfmsZtXFXE5sZJunLVWDjufukwLihF
+```
+
+**Output:**
+```
+✅ Sent README.md (1234 bytes)
+```
+
+The file will be saved in `p2pSend/received/` folder! ✅
+
+---
+
+### Option 1: Web Interface
 
 #### Step 1: Start Frontend
 ```bash
@@ -91,6 +133,7 @@ npm run dev
 You should see:
 ```
 ➜  Local:   http://localhost:5173/
+➜  Network: http://192.168.1.2:5173/
 ```
 
 #### Step 2: Open Browser
@@ -99,38 +142,58 @@ Open your browser and navigate to:
 http://localhost:5173
 ```
 
-**That's it!** No backend server needed. libp2p runs directly in your browser.
+**⚠️ Important Note:** Browser-to-browser connections require both peers to be on the same network or use a relay server. For best results, use **Browser-to-CLI** or **CLI-to-CLI** connections.
 
 ---
 
 ## 📱 Using the Web Interface
 
-### Receiver Side:
-1. Click **"Receive"** button
-2. Wait for libp2p initialization (~2 seconds)
-3. Copy your peer address (e.g., `/p2p/12D3KooW...`)
-4. Share this address with the sender
-5. Keep the tab open and wait for incoming files
+### 🔥 Best Practice: Browser to CLI
 
-### Sender Side:
-1. Open a new browser tab: `http://localhost:5173`
+For reliable transfers, use the browser as sender and CLI as receiver:
+
+#### Terminal - Start Receiver:
+```bash
+cd p2pSend
+node cli.js receive
+```
+**Copy the address** (e.g., `/ip4/127.0.0.1/tcp/xxxxx/p2p/12D3KooW...`)
+
+#### Browser - Send File:
+1. Open: `http://localhost:5173`
 2. Click **"Send File"** button
 3. Select or drag & drop your file
-4. Paste the receiver's peer address
+4. Paste the receiver's address
 5. Click **"Start Transfer"**
 6. Watch the real-time progress!
 
-### Download Received File:
-- File is **automatically downloaded** to your Downloads folder
-- No server storage - direct P2P transfer!
+#### Check Received File:
+```bash
+ls -lh p2pSend/received/
+```
 
 ---
 
-## 💻 Option 2: CLI Interface
+### Browser to Browser (Advanced)
+
+**⚠️ Limitations:** Browser-to-browser requires:
+- Both peers on the same local network, OR
+- A relay server for NAT traversal
+
+**Steps:**
+1. **Receiver:** Click "Receive" → Copy peer ID
+2. **Sender:** Click "Send File" → Paste peer ID → Start Transfer
+
+**Note:** If you get "no valid addresses" error, use CLI instead.
+
+---
+
+## 💻 Option 2: CLI Interface (Most Reliable)
 
 ### Start Receiver
 ```bash
-p2psend receive
+cd p2pSend
+node cli.js receive
 ```
 
 Output:
@@ -143,16 +206,17 @@ Addresses: [
 ]
 ```
 
-Copy one of the addresses.
+**Copy the full address** (the line starting with `/ip4/...`)
 
 ### Send File
 ```bash
-p2psend send <file> --to <receiver-address>
+cd p2pSend
+node cli.js send <file> --to <receiver-address>
 ```
 
 **Example:**
 ```bash
-p2psend send document.pdf --to /ip4/127.0.0.1/tcp/50322/p2p/12D3KooWBgEWKgRtquDQP5YxDi41BsXgvLJS1kcgZWBfTDF5Sjkw
+node cli.js send document.pdf --to /ip4/127.0.0.1/tcp/50322/p2p/12D3KooWBgEWKgRtquDQP5YxDi41BsXgvLJS1kcgZWBfTDF5Sjkw
 ```
 
 **Output:**
@@ -160,11 +224,16 @@ p2psend send document.pdf --to /ip4/127.0.0.1/tcp/50322/p2p/12D3KooWBgEWKgRtquDQ
 ✅ Sent document.pdf (1024 bytes)
 ```
 
+**Received file location:**
+```
+p2pSend/received/document.pdf
+```
+
 ### CLI Help
 ```bash
-p2psend --help
-p2psend send --help
-p2psend receive --help
+node cli.js --help
+node cli.js send --help
+node cli.js receive --help
 ```
 
 ---

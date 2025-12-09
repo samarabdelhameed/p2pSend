@@ -3,6 +3,9 @@ import { webSockets } from '@libp2p/websockets';
 import { webRTC } from '@libp2p/webrtc';
 import { yamux } from '@chainsafe/libp2p-yamux';
 import { noise } from '@chainsafe/libp2p-noise';
+import { identify } from '@libp2p/identify';
+import { circuitRelayTransport } from '@libp2p/circuit-relay-v2';
+import { bootstrap } from '@libp2p/bootstrap';
 import { multiaddr } from '@multiformats/multiaddr';
 
 const PROTOCOL = '/p2p-send/1.0.0';
@@ -34,20 +37,40 @@ type ProgressCallback = (progress: TransferProgress) => void;
 class P2PClient {
   private node: Libp2p | null = null;
   private listeners: Set<ProgressCallback> = new Set();
+  private handlerRegistered: boolean = false;
 
   async initialize(): Promise<void> {
     if (this.node) return;
 
     this.node = await createLibp2p({
       addresses: {
-        listen: []
+        listen: [
+          '/webrtc'
+        ]
       },
       transports: [
         webSockets(),
-        webRTC()
+        webRTC(),
+        circuitRelayTransport({
+          discoverRelays: 1
+        })
       ],
       streamMuxers: [yamux()],
-      connectionEncrypters: [noise()]
+      connectionEncrypters: [noise()],
+      services: {
+        identify: identify(),
+        bootstrap: bootstrap({
+          list: [
+            '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
+            '/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa',
+            '/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb',
+            '/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt'
+          ]
+        })
+      },
+      connectionManager: {
+        minConnections: 0
+      }
     });
 
     await this.node.start();
@@ -60,10 +83,21 @@ class P2PClient {
 
     if (!this.node) throw new Error('Node not initialized');
 
+    // Unregister old handler if exists, then register new one
+    try {
+      if (this.handlerRegistered) {
+        await this.node.unhandle(PROTOCOL);
+        this.handlerRegistered = false;
+      }
+    } catch (err) {
+      // Ignore if handler doesn't exist
+    }
+
     // Register protocol handler
     await this.node.handle(PROTOCOL, async (stream) => {
       await this.handleIncomingFile(stream);
     });
+    this.handlerRegistered = true;
 
     const addresses = this.node.getMultiaddrs().map(ma => ma.toString());
     
@@ -256,6 +290,7 @@ class P2PClient {
       await this.node.stop();
       this.node = null;
     }
+    this.handlerRegistered = false;
     this.listeners.clear();
   }
 

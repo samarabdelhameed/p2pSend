@@ -19,20 +19,24 @@ export default function Receive({ onNavigate }: ReceiveProps) {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    let mounted = true;
+    
     const init = async () => {
       try {
         await p2pClient.initialize();
+        
+        // Only start receiver if component is still mounted
+        if (!mounted) return;
+        
         await p2pClient.startReceiver();
         
-        // Get all addresses or fallback to peer ID
-        const addresses = p2pClient.getAddresses();
-        if (addresses.length > 0) {
-          setReceiverAddr(addresses[0]);
-        } else {
-          setReceiverAddr(`/p2p/${p2pClient.getPeerId()}`);
-        }
+        // Use peer ID only for browser-to-browser connection
+        const peerId = p2pClient.getPeerId();
+        setReceiverAddr(`/p2p/${peerId}`);
       } catch (err: any) {
-        setError(`Failed to start receiver: ${err.message}`);
+        if (mounted) {
+          setError(`Failed to start receiver: ${err.message}`);
+        }
       }
     };
 
@@ -40,6 +44,8 @@ export default function Receive({ onNavigate }: ReceiveProps) {
 
     // Listen for incoming files
     const unsubscribe = p2pClient.onProgress((msg) => {
+      if (!mounted) return;
+      
       if (msg.type === 'receiving') {
         if (msg.status === 'metadata') {
           setFileName(msg.fileName || '');
@@ -56,6 +62,7 @@ export default function Receive({ onNavigate }: ReceiveProps) {
     });
 
     return () => {
+      mounted = false;
       unsubscribe();
     };
   }, []);
@@ -142,7 +149,14 @@ export default function Receive({ onNavigate }: ReceiveProps) {
                   </div>
                 )}
 
-                <div className="flex items-center justify-center gap-2 text-slate-500 text-sm">
+                <div className="mt-6 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-300 text-sm">
+                  <p className="font-semibold mb-2">📝 Note: Browser-to-Browser Limitations</p>
+                  <p>For best results, use the CLI to receive files:</p>
+                  <code className="block mt-2 p-2 bg-slate-900 rounded">node cli.js receive</code>
+                  <p className="mt-2 text-xs text-slate-400">Browser connections require both peers on the same network or a relay server.</p>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 text-slate-500 text-sm mt-4">
                   <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
                   <span>Ready to receive</span>
                 </div>
